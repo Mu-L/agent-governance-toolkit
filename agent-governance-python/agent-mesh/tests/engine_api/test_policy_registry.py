@@ -31,7 +31,11 @@ _JSON_POLICY = {
     "version": "1.0",
     "name": "Beta",
     "rules": [
-        {"name": "r1", "condition": {"field": "a", "operator": "eq", "value": 1}, "action": "allow"},
+        {
+            "name": "r1",
+            "condition": {"field": "a", "operator": "eq", "value": 1},
+            "action": "allow",
+        },
         {"name": "r2", "condition": {"field": "b", "operator": "eq", "value": 2}, "action": "deny"},
     ],
 }
@@ -124,6 +128,19 @@ class TestMissingDirectory:
         assert matching
         assert all(record.levelno == logging.INFO for record in matching)
 
+    def test_existing_file_is_empty_and_logged_as_warning(self, tmp_path, caplog):
+        policy_path = tmp_path / "policies"
+        policy_path.write_text("not a directory", encoding="utf-8")
+
+        with caplog.at_level(logging.WARNING, logger="agentmesh.engine_api.policy_registry"):
+            reg = PolicyRegistry(policy_path)
+
+        assert reg.list_summaries() == []
+        assert any(
+            record.levelno == logging.WARNING and "is not a directory" in record.message
+            for record in caplog.records
+        )
+
 
 class TestMalformedTolerance:
     def test_malformed_policy_lists_with_id_name_and_zero_rules(self, tmp_path):
@@ -161,6 +178,25 @@ class TestMalformedTolerance:
         # The unreadable file is skipped; the readable one still loads.
         assert [s.id for s in reg.list_summaries()] == ["good"]
 
+    def test_file_with_unreadable_metadata_is_skipped(self, tmp_path, monkeypatch):
+        (tmp_path / "good.yaml").write_text(_YAML_POLICY, encoding="utf-8")
+        (tmp_path / "bad.yaml").write_text(_YAML_POLICY, encoding="utf-8")
+        original = Path.stat
+        bad_stat_calls = 0
+
+        def _raise_for_bad(self, *args, **kwargs):
+            nonlocal bad_stat_calls
+            if self.name == "bad.yaml":
+                bad_stat_calls += 1
+                if bad_stat_calls > 1:
+                    raise OSError("metadata unavailable")
+            return original(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "stat", _raise_for_bad)
+        reg = PolicyRegistry(tmp_path)
+
+        assert [summary.id for summary in reg.list_summaries()] == ["good"]
+
 
 class TestSave:
     def test_save_writes_file_and_reloads(self, tmp_path):
@@ -176,6 +212,14 @@ class TestSave:
         reg.save("delta", json.dumps(_JSON_POLICY), "json")
         assert (tmp_path / "delta.json").exists()
         assert reg.get_detail("delta").format == "json"
+
+    def test_save_rejects_unsupported_format(self, tmp_path):
+        reg = PolicyRegistry(tmp_path)
+
+        with pytest.raises(ValueError, match="Invalid policy format"):
+            reg.save("delta", _YAML_POLICY, "toml")
+
+        assert list(tmp_path.iterdir()) == []
 
     def test_save_creates_missing_directory(self, tmp_path):
         target = tmp_path / "nope"
@@ -244,3 +288,21 @@ class TestSave:
             reg = PolicyRegistry(tmp_path)
         assert [s.id for s in reg.list_summaries()] == ["alpha"]
         assert any("Duplicate policy id 'alpha'" in r.message for r in caplog.records)
+
+    def test_duplicate_id_resolution_is_deterministic(self, tmp_path, monkeypatch):
+        json_path = tmp_path / "alpha.json"
+        yaml_path = tmp_path / "alpha.yaml"
+        json_path.write_text(json.dumps(_JSON_POLICY), encoding="utf-8")
+        yaml_path.write_text(_YAML_POLICY, encoding="utf-8")
+        original = Path.iterdir
+
+        def _reverse_directory_order(self):
+            return iter(reversed(list(original(self))))
+
+        monkeypatch.setattr(Path, "iterdir", _reverse_directory_order)
+        reg = PolicyRegistry(tmp_path)
+
+        detail = reg.get_detail("alpha")
+        assert detail is not None
+        assert detail.source == "alpha.yaml"
+        assert detail.format == "yaml"

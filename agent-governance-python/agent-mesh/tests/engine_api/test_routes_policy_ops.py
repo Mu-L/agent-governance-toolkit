@@ -32,7 +32,11 @@ _VALID_POLICY_JSON = json.dumps(
         "version": "1.0",
         "name": "Valid JSON Policy",
         "rules": [
-            {"name": "r", "condition": {"field": "a", "operator": "eq", "value": 1}, "action": "allow"}
+            {
+                "name": "r",
+                "condition": {"field": "a", "operator": "eq", "value": 1},
+                "action": "allow",
+            }
         ],
     }
 )
@@ -68,18 +72,28 @@ class TestValidatePolicy:
         assert body["errors"][0]["message"]
 
     def test_malformed_yaml_is_parse_error(self, client):
+        invalid_content = "secret-token: [1, 2"
         resp = client.post(
-            "/api/v1/policy/validate", json={"content": "foo: [1, 2", "format": "yaml"}
+            "/api/v1/policy/validate",
+            json={"content": invalid_content, "format": "yaml"},
         )
         assert resp.status_code == 422
-        assert resp.json()["code"] == "POLICY_PARSE_ERROR"
+        body = resp.json()
+        assert body["code"] == "POLICY_PARSE_ERROR"
+        assert body["message"] == "Policy content failed to parse"
+        assert invalid_content not in json.dumps(body)
 
     def test_malformed_json_is_parse_error(self, client):
+        invalid_content = '{"secret-token": '
         resp = client.post(
-            "/api/v1/policy/validate", json={"content": "{not valid json", "format": "json"}
+            "/api/v1/policy/validate",
+            json={"content": invalid_content, "format": "json"},
         )
         assert resp.status_code == 422
-        assert resp.json()["code"] == "POLICY_PARSE_ERROR"
+        body = resp.json()
+        assert body["code"] == "POLICY_PARSE_ERROR"
+        assert body["message"] == "Policy content failed to parse"
+        assert invalid_content not in json.dumps(body)
 
 
 # ── /policy/test ─────────────────────────────────────────────────────────────
@@ -99,7 +113,12 @@ def _fake_report():
 
 _TEST_BODY = {
     "fixtures": [
-        {"id": "f1", "input": {"action": "read"}, "expected_verdict": "allow", "expected_rule": "allow-reads"}
+        {
+            "id": "f1",
+            "input": {"action": "read"},
+            "expected_verdict": "allow",
+            "expected_rule": "allow-reads",
+        }
     ]
 }
 
@@ -181,7 +200,9 @@ class TestTestPolicyWithFakeEngine:
         assert resp.status_code == 200
         assert captured["policy_dir"] == os.path.realpath(str(override))
 
-    def test_policy_dir_override_outside_root_is_rejected(self, client, monkeypatch, tmp_path_factory):
+    def test_policy_dir_override_outside_root_is_rejected(
+        self, client, monkeypatch, tmp_path_factory
+    ):
         def _capturing_replay(_policy_dir, _fixtures):
             raise AssertionError("replay must not run for an out-of-root override")
 

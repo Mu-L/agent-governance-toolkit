@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import time
 
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 
 from agentmesh.engine_api.errors import register_error_handlers
 from agentmesh.engine_api.openapi import inject_capability_extension
@@ -52,6 +52,7 @@ def _env_truthy(name: str) -> bool:
     """Return ``True`` when environment variable ``name`` is set to a truthy value."""
     return os.getenv(name, "").strip().lower() in _TRUTHY_ENV_VALUES
 
+
 #: Route modules included by the app, in contract order.
 _ROUTE_MODULES = (
     health,
@@ -63,26 +64,6 @@ _ROUTE_MODULES = (
     decisions,
     versions,
 )
-
-
-def _register_routes_flat(app: FastAPI, router: APIRouter) -> None:
-    """Register a router's routes directly onto ``app`` at the top level.
-
-    FastAPI 0.118+/Starlette 1.x changed :meth:`FastAPI.include_router` so it
-    appends a single ``_IncludedRouter`` proxy to ``app.router.routes`` instead
-    of flattening the sub-router's :class:`~fastapi.routing.APIRoute` objects
-    into the app's route list. :func:`inject_capability_extension` iterates
-    ``app.routes`` looking for top-level ``APIRoute`` instances, so routes hidden
-    behind that proxy never receive their ``x-capability-flags`` extension (and,
-    worse, the loop cannot tell they are missing). Appending each ``APIRoute``
-    directly keeps every operation visible to the capability hook across all
-    supported FastAPI versions. The route modules use plain, prefix-free routers
-    with absolute ``/api/v1`` paths and per-route tags, so direct registration is
-    equivalent to ``include_router`` here.
-    """
-    # Tied to the `fastapi` pin in agent-mesh/pyproject.toml (currently fastapi>=0.139.2,<1.0);
-    # revisit if FastAPI/Starlette route-inclusion behavior changes.
-    app.router.routes.extend(router.routes)
 
 
 def create_app(policy_dir: str | None = None, enable_policy_save: bool | None = None) -> FastAPI:
@@ -123,7 +104,7 @@ def create_app(policy_dir: str | None = None, enable_policy_save: bool | None = 
     register_error_handlers(app)
 
     for module in _ROUTE_MODULES:
-        _register_routes_flat(app, module.router)
+        app.include_router(module.router)
 
     # Must run after every router is registered: it validates that every in-schema
     # operation carries capability flags and injects the x-capability-flags extension.

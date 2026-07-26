@@ -16,9 +16,9 @@ from agentmesh.engine_api.models import VersionsResponse
 API_VERSION: Final = "1.0.0"
 
 #: Distribution name to resolve the engine version from package metadata.
-_ENGINE_DISTRIBUTION: Final = "agentmesh-platform"
+_ENGINE_DISTRIBUTION: Final = "agentmesh_platform"
 #: Capability identifiers advertised via ``GET /api/v1/versions`` (contract section 5.1).
-ENGINE_CAPABILITIES: Final[list[str]] = [
+ENGINE_CAPABILITIES: Final[tuple[str, ...]] = (
     "agents",
     "audit_log",
     "decisions",
@@ -28,7 +28,7 @@ ENGINE_CAPABILITIES: Final[list[str]] = [
     "policy_validate",
     "trust_graph",
     "trust_scores",
-]
+)
 
 router = APIRouter()
 

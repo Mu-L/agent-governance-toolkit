@@ -170,7 +170,13 @@ async def test_policy(request: Request, body: TestRequest) -> TestResponse:
         fixtures_file.write_text(json.dumps(fixtures_payload), encoding="utf-8")
         try:
             report = replay(policy_dir, fixtures_file)
-        except (FileNotFoundError, ValueError, KeyError, yaml.YAMLError, json.JSONDecodeError) as exc:
+        except (
+            FileNotFoundError,
+            ValueError,
+            KeyError,
+            yaml.YAMLError,
+            json.JSONDecodeError,
+        ) as exc:
             details = {"policy_dir": body.policy_dir} if body.policy_dir is not None else {}
             raise ApiError(
                 422,

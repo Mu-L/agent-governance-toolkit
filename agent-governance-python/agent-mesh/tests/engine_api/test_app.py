@@ -11,7 +11,9 @@ import pytest
 
 pytest.importorskip("fastapi")
 
-importlib.import_module("agentmesh")  # side effect: fire the package-level DeprecationWarning once, before create_app() is wrapped
+importlib.import_module(
+    "agentmesh"
+)  # side effect: fire the package-level DeprecationWarning once, before create_app() is wrapped
 from agentmesh.engine_api import (  # noqa: E402
     CAPABILITY_EXTENSION_KEY,
     create_app,
@@ -98,9 +100,7 @@ class TestCapabilityFlags:
         ops = _operations(schema)
         assert ops["savePolicy"][CAPABILITY_EXTENSION_KEY] == _MUTATING_FLAGS
         mutating = [
-            op_id
-            for op_id, op in ops.items()
-            if op[CAPABILITY_EXTENSION_KEY]["runtime_mutating"]
+            op_id for op_id, op in ops.items() if op[CAPABILITY_EXTENSION_KEY]["runtime_mutating"]
         ]
         assert mutating == ["savePolicy"]
 
@@ -135,6 +135,14 @@ class TestStartup:
         monkeypatch.setenv("AGENTMESH_POLICY_DIR", str(target))
         app = create_app()
         assert app.state.policy_registry.policy_dir == target
+
+    def test_create_app_instances_do_not_share_top_level_routes(self, tmp_path):
+        first = create_app(policy_dir=tmp_path / "first")
+        second = create_app(policy_dir=tmp_path / "second")
+
+        assert {id(route) for route in first.routes}.isdisjoint(
+            {id(route) for route in second.routes}
+        )
 
 
 class TestPackageExports:
