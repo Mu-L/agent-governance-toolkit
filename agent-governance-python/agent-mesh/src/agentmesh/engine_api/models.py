@@ -28,6 +28,7 @@ TrustLevel = Literal["untrusted", "probationary", "standard", "trusted", "verifi
 # item count because each inline fixture drives a replay run.
 _MAX_POLICY_CONTENT = 1_048_576
 _MAX_FIXTURES = 1000
+POLICY_ID_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,63}$"
 
 
 # ── Health (section 7.1) ─────────────────────────────────────────────────────
@@ -114,7 +115,7 @@ class TestResponse(BaseModel):
 class SaveRequest(BaseModel):
     id: str = Field(
         ...,
-        pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$",
+        pattern=POLICY_ID_PATTERN,
         description="Policy identifier (becomes filename)",
     )
     content: str = Field(
@@ -199,9 +200,7 @@ class VersionsResponse(BaseModel):
     engine: str = Field(..., description="Engine software version")
     api: str = Field(..., description="API contract version")
     python: str | None = Field(None, description="Python runtime version")
-    capabilities: list[str] | None = Field(
-        None, description="Supported capability identifiers"
-    )
+    capabilities: list[str] | None = Field(None, description="Supported capability identifiers")
 
 
 # ── Paginated wrappers (section 11.2) ────────────────────────────────────────

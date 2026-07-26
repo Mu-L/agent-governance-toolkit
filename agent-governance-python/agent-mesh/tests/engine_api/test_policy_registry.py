@@ -240,13 +240,20 @@ class TestSave:
         reg.reload()
         assert [s.id for s in reg.list_summaries()] == ["alpha"]
 
-    @pytest.mark.parametrize("bad_id", ["../escape", "nested/child", "../../escape"])
-    def test_save_rejects_path_traversal(self, tmp_path, bad_id):
-        # Ids containing separators or leading dots are rejected before any path is built,
-        # so a caller cannot escape the policy directory.
+    @pytest.mark.parametrize(
+        "bad_id",
+        ["../escape", "nested/child", "../../escape", "Uppercase", "has.dot", "a" * 65],
+    )
+    def test_save_rejects_ids_outside_public_contract(self, tmp_path, bad_id):
         reg = PolicyRegistry(tmp_path)
         with pytest.raises(ValueError, match="Invalid policy id"):
             reg.save(bad_id, _YAML_POLICY, "yaml")
+
+    @pytest.mark.parametrize("policy_id", ["a", "alpha_2-beta", "a" * 64])
+    def test_save_accepts_ids_from_public_contract(self, tmp_path, policy_id):
+        reg = PolicyRegistry(tmp_path)
+        reg.save(policy_id, _YAML_POLICY, "yaml")
+        assert (tmp_path / f"{policy_id}.yaml").exists()
 
     @pytest.mark.parametrize("escaping", ["../evil.yaml", "../../evil.yaml", "sub/../../evil"])
     def test_contained_path_rejects_escape(self, tmp_path, escaping):

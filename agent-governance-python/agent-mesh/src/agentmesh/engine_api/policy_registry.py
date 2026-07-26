@@ -34,7 +34,7 @@ from pathlib import Path
 
 import yaml
 
-from agentmesh.engine_api.models import PolicyDetail, PolicySummary
+from agentmesh.engine_api.models import POLICY_ID_PATTERN, PolicyDetail, PolicySummary
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +225,7 @@ class PolicyRegistry:
         Returns:
             An opaque version token (a content hash) for optimistic concurrency.
         """
-        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", policy_id):
+        if not re.fullmatch(POLICY_ID_PATTERN, policy_id):
             raise ValueError(f"Invalid policy id '{policy_id}'")
 
         if fmt not in {"yaml", "json"}:
