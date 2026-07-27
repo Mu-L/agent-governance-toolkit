@@ -14,6 +14,8 @@
 #   3. Set up signing certificate in Azure Key Vault
 #   4. Install ESRP Release ADO Task extension (v11)
 #   5. Configure ADO pipeline variables (see below)
+#   6. Create the WIF service connection 'AGT-ESRP-Signing' with a federated
+#      credential on the managed identity (referenced by all ESRP tasks)
 #
 # See: PUBLISHING.md for full setup guide.
 # ---------------------------------------------------------
