@@ -160,5 +160,10 @@ would keep the invalid identifier live indefinitely. Records AGT has already
 emitted remain verifiable as v0.1 records against `agentrust-trace-tests` 0.3.x,
 which stays published; they do not become invalid retroactively.
 
+AGT's `agentrust-trace` dependency moves from `>=0.2.0,<0.3.0` to
+`>=0.5.0,<0.6.0`. The References section above still cites v0.2.0 because that is
+what this ADR was accepted against; it is a historical record, not a statement of
+the current pin.
+
 The original Decision text is retained above per the ADR immutability convention.
 The file name still says `v01` for the same reason.
