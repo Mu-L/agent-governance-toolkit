@@ -161,7 +161,16 @@ emitted remain verifiable as v0.1 records against `agentrust-trace-tests` 0.3.x,
 which stays published; they do not become invalid retroactively.
 
 AGT's `agentrust-trace` dependency moves from `>=0.2.0,<0.3.0` to
-`>=0.5.0,<0.6.0`. The References section above still cites v0.2.0 because that is
+`>=0.5.0,<0.6.0`.
+
+That bump also changes one field. The Decision section says `transparency` is an
+empty string for Phase 1, because SCITT anchoring is out of scope there. It is now
+`None` instead. An empty string looks populated and resolves to nothing, which is a
+worse thing to put in a trust record than an absent field; `None` says plainly that
+this record is not anchored. Conformance requires `transparency` only at Level 2,
+where `TR-ANC` runs, so an unanchored Phase 1 record remains conformant at the level
+it claims. This needs `agentrust-trace` 0.5.1 or later, which stopped requiring a
+non-empty value at every level (agentrust-io/trace-spec#109). The References section above still cites v0.2.0 because that is
 what this ADR was accepted against; it is a historical record, not a statement of
 the current pin.
 

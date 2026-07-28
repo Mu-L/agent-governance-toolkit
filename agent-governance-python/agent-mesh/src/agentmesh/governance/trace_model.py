@@ -51,7 +51,7 @@ class TrustRecord:
     data_class: str
     build_provenance: dict
     appraisal: dict
-    transparency: str
+    transparency: Optional[str]
     tool_transcript: dict
 
 
@@ -95,7 +95,11 @@ def session_to_trust_record(session: TraceSession, config: TraceModelConfig) -> 
         data_class=session.data_class,
         build_provenance=config.build_provenance,
         appraisal={"status": appraisal_status, "verifier": config.verifier},
-        transparency="",
+        # None, not "": a Level 0/1 record is not anchored, so there is no receipt
+        # URI to name. An empty string looks populated and resolves to nothing, which
+        # is worse than an absent field. Conformance requires this at Level 2 only,
+        # where TR-ANC runs.
+        transparency=None,
         tool_transcript={"hash": _jcs_hash(entries), "call_count": call_count},
     )
 

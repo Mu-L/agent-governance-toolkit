@@ -117,7 +117,10 @@ def session_to_trust_record(
             "status": "affirming",
             "verifier": config.appraisal_verifier,
         },
-        "transparency": "",
+        # None, not "": this sink does not anchor to a transparency log, so there
+        # is no receipt URI. An empty string looks populated and resolves to
+        # nothing. Conformance requires this at Level 2 only, where TR-ANC runs.
+        "transparency": None,
     }
 
     if config.model_version:
