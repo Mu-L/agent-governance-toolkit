@@ -11,6 +11,12 @@ from typing import Optional
 
 from .audit import AuditEntry
 
+#: TRACE EAT profile URI emitted by AGT. Single source of truth: trace_sink.py
+#: imports this rather than repeating the literal, because a wire-format constant
+#: duplicated across modules drifts one call site at a time. See ADR-0032 and its
+#: 2026-07-28 amendment for why the v0.1 URI was replaced.
+TRACE_EAT_PROFILE = "tag:agentrust-io.com,2026:trace-v0.2"
+
 
 _DENY_OUTCOMES = frozenset({"denied"})
 _DENY_EVENT_TYPES = frozenset({"policy_violation", "tool_blocked"})
@@ -25,7 +31,7 @@ class TraceModelConfig:
     enforcement_mode: str
     build_provenance: dict
     verifier: str
-    eat_profile: str = "tag:agentrust-io.com,2026:trace-v0.2"
+    eat_profile: str = TRACE_EAT_PROFILE
 
 
 @dataclass

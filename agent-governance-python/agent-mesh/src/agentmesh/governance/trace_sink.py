@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .audit import AuditLog
+from .trace_model import TRACE_EAT_PROFILE
 
 _SUBJECT_RE = re.compile(r"^(spiffe://|did:)")
 
@@ -89,7 +90,7 @@ def session_to_trust_record(
     bp_digest = config.build_provenance_digest or measurement
 
     record: dict[str, Any] = {
-        "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
+        "eat_profile": TRACE_EAT_PROFILE,
         "iat": iat,
         "subject": agent_did,
         "model": {
@@ -185,7 +186,7 @@ class TRACEAuditSink:
         except ImportError as exc:
             raise RuntimeError(
                 "agentrust-trace is required for TRACE emission. "
-                "Install it with: pip install agentrust-trace>=0.2.0"
+                "Install it with: pip install 'agentrust-trace>=0.5.0,<0.6.0'"
             ) from exc
 
         record = session_to_trust_record(

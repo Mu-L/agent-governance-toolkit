@@ -133,10 +133,14 @@ sink is affected. The HMAC-chained audit log continues to be written in parallel
   TRACE extends.
 - agentrust-io/trace-spec v0.2.0 -- the claim schema and conformance tests.
 - agentrust-trace v0.2.0 (PyPI) -- `TrustRecord`, `sign_record`, `load_signing_key`.
+  That is the version this ADR was accepted against, kept as the historical record.
+  Do not install it: the current pin is `>=0.5.0,<0.6.0`, and the 2026-07-28
+  amendment below explains what changed in between, including a breaking
+  canonicalization change.
 - agentrust-io/cmcp#124 -- Phase 2 TEE enforcement; the runtime that will
   supersede this record for TEE deployments.
 
-## Amendment  -  2026-07-28: the profile URI moves to TRACE v0.2
+## Amendment 2026-07-28: the profile URI moves to TRACE v0.2
 
 **Resolved by:** agentrust-io/trace-spec#107.
 
