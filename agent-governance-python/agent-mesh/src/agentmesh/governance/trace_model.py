@@ -25,7 +25,7 @@ class TraceModelConfig:
     enforcement_mode: str
     build_provenance: dict
     verifier: str
-    eat_profile: str = "tag:agentrust.io,2026:trace-v0.1"
+    eat_profile: str = "tag:agentrust-io.com,2026:trace-v0.2"
 
 
 @dataclass

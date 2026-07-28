@@ -89,7 +89,7 @@ def session_to_trust_record(
     bp_digest = config.build_provenance_digest or measurement
 
     record: dict[str, Any] = {
-        "eat_profile": "tag:agentrust.io,2026:trace-v0.1",
+        "eat_profile": "tag:agentrust-io.com,2026:trace-v0.2",
         "iat": iat,
         "subject": agent_did,
         "model": {

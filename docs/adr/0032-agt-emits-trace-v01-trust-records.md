@@ -135,3 +135,30 @@ sink is affected. The HMAC-chained audit log continues to be written in parallel
 - agentrust-trace v0.2.0 (PyPI) -- `TrustRecord`, `sign_record`, `load_signing_key`.
 - agentrust-io/cmcp#124 -- Phase 2 TEE enforcement; the runtime that will
   supersede this record for TEE deployments.
+
+## Amendment  -  2026-07-28: the profile URI moves to TRACE v0.2
+
+**Resolved by:** agentrust-io/trace-spec#107.
+
+The Decision section above specifies `eat_profile` as the constant
+`"tag:agentrust.io,2026:trace-v0.1"`. That URI is no longer correct, and it was
+never valid.
+
+RFC 4151 permits a tag URI only where the minting authority controlled the named
+domain on the date in the URI. `agentrust.io` was never controlled by the TRACE
+project; it resolves to third-party parked addresses. The identifier therefore
+asserted authority over a name belonging to someone else, who could at any point
+publish a conflicting definition at it.
+
+TRACE v0.2 corrects it to `tag:agentrust-io.com,2026:trace-v0.2` and changes
+nothing else about the record format. No field was added, removed, or re-typed, so
+AGT's emitter changes by one constant.
+
+The upstream cutover is deliberate rather than a transition window: a v0.2 verifier
+requires the new URI and rejects the old one, because a verifier accepting both
+would keep the invalid identifier live indefinitely. Records AGT has already
+emitted remain verifiable as v0.1 records against `agentrust-trace-tests` 0.3.x,
+which stays published; they do not become invalid retroactively.
+
+The original Decision text is retained above per the ADR immutability convention.
+The file name still says `v01` for the same reason.
