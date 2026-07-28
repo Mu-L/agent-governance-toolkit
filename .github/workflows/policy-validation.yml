@@ -48,15 +48,29 @@ jobs:
           from pathlib import Path
           from agent_compliance.lint_policy import lint_file
 
+          # A manifest that omits agent_control_specification_version would skip
+          # validation silently, which is the wrong direction for a policy gate.
+          # intervention_points is the ACS-specific tell: policies and agents
+          # are also used by unrelated config formats in this repo.
+          def declares_hooks(text):
+              return text.startswith("intervention_points:") or "\nintervention_points:" in text
+
           manifests = []
+          missing_version = []
           for root in (Path("examples"), Path("agent-governance-python")):
               for pattern in ("*.yaml", "*.yml"):
                   for path in root.rglob(pattern):
                       text = path.read_text(encoding="utf-8", errors="ignore")
                       if "agent_control_specification_version:" in text:
                           manifests.append(path)
+                      elif declares_hooks(text):
+                          missing_version.append(path)
 
-          failed = []
+          failed = [
+              f"{path}: declares intervention_points but no "
+              "agent_control_specification_version, so it skips validation"
+              for path in sorted(missing_version)
+          ]
           for path in sorted(manifests):
               result = lint_file(path)
               if not result.passed:
