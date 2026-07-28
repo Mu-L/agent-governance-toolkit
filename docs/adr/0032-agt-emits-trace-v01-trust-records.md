@@ -134,7 +134,7 @@ sink is affected. The HMAC-chained audit log continues to be written in parallel
 - agentrust-io/trace-spec v0.2.0 -- the claim schema and conformance tests.
 - agentrust-trace v0.2.0 (PyPI) -- `TrustRecord`, `sign_record`, `load_signing_key`.
   That is the version this ADR was accepted against, kept as the historical record.
-  Do not install it: the current pin is `>=0.5.0,<0.6.0`, and the 2026-07-28
+  Do not install it: the current pin is `>=0.5.1,<0.6.0`, and the 2026-07-28
   amendment below explains what changed in between, including a breaking
   canonicalization change.
 - agentrust-io/cmcp#124 -- Phase 2 TEE enforcement; the runtime that will
@@ -188,7 +188,10 @@ canonicalization caveat above, though: a record signed by AGT under 0.2.0 needs 
 0.2.0-era verifier, not merely a pre-cutover one.
 
 AGT's `agentrust-trace` dependency moves from `>=0.2.0,<0.3.0` to
-`>=0.5.0,<0.6.0`.
+`>=0.5.1,<0.6.0`. The floor is 0.5.1 rather than 0.5.0 deliberately: 0.5.0 still
+required a non-empty `transparency`, so a resolve that landed on it would reject
+the `None` this amendment describes and reproduce the exact ValidationError the
+change exists to fix. A floor that admits a broken version is not a floor.
 
 That bump also changes one field. The Decision section says `transparency` is an
 empty string for Phase 1, because SCITT anchoring is out of scope there. It is now

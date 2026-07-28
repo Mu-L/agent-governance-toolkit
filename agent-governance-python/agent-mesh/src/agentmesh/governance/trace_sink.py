@@ -186,7 +186,7 @@ class TRACEAuditSink:
         except ImportError as exc:
             raise RuntimeError(
                 "agentrust-trace is required for TRACE emission. "
-                "Install it with: pip install 'agentrust-trace>=0.5.0,<0.6.0'"
+                "Install it with: pip install 'agentrust-trace>=0.5.1,<0.6.0'"
             ) from exc
 
         record = session_to_trust_record(
