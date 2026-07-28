@@ -1,7 +1,6 @@
 {
-  "grand_total": 1416,
+  "grand_total": 1415,
   "package_totals": {
-    "BREAKING_CHANGES.md": 1,
     "CHANGELOG.md": 2,
     "agent-governance-golang/examples": 1,
     "agent-governance-python/agent-os": 243,
@@ -53,9 +52,6 @@
     "scripts/check_v4_ratchet.py": 25
   },
   "files": {
-    "BREAKING_CHANGES.md": {
-      "PolicyAction": 1
-    },
     "CHANGELOG.md": {
       "PolicyDocument": 2
     },
@@ -1000,6 +996,9 @@
     }
   },
   "allowed_migration_files": {
+    "BREAKING_CHANGES.md": {
+      "PolicyAction": 1
+    },
     "agent-governance-python/agt-policies/src/agt/cli/migrate.py": {
       "CedarBackend": 1,
       "GovernancePolicy": 2,
