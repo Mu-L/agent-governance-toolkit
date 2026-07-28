@@ -294,6 +294,22 @@ class BaseIntegration:
             GovernanceEventType, list[Callable[..., Any]]
         ] = {}
 
+    @staticmethod
+    def _tuple_for(result: Any) -> tuple[bool, str | None]:
+        """Collapse a result to the ``(allowed, reason)`` contract.
+
+        A ``transform`` verdict permits, but it carries a replacement the
+        caller is expected to use, and this two-value contract cannot return
+        one. Reporting it as allowed would run the original payload while the
+        policy believed it had been rewritten, so a redaction policy would
+        silently not redact. It is reported as refused instead; callers that
+        need the replacement should use the adapter runtime directly, which
+        exposes ``transformed_value``.
+        """
+        if result.transform is not None:
+            return False, "transform_not_applicable"
+        return result.allowed, result.reason or None
+
     def pre_execute(
         self,
         state: AdapterExecutionState,
@@ -302,7 +318,7 @@ class BaseIntegration:
         """Evaluate host input through the native session."""
 
         result = self._adapter_runtime.evaluate_input(state, body=input_data)
-        return result.allowed, result.reason or None
+        return self._tuple_for(result)
 
     def post_execute(
         self,
@@ -314,7 +330,7 @@ class BaseIntegration:
         result = self._adapter_runtime.evaluate_output(state, content=output_data)
         if result.allowed:
             self.record_host_completion(state, output_data=output_data)
-        return result.allowed, result.reason or None
+        return self._tuple_for(result)
 
     def create_context(self, agent_id: str) -> AdapterExecutionState:
         from uuid import uuid4

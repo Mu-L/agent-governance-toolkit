@@ -289,8 +289,9 @@ class GovernedGeminiModel:
                         pass
                 self._kernel.bridge.record_post_execute(self._ctx, tool_calls=1)
 
-        # Post-execute bookkeeping
-        self._kernel.post_execute(self._ctx, response)
+        allowed, reason = self._kernel.post_execute(self._ctx, response)
+        if not allowed:
+            raise PolicyViolationError(f"Response blocked by policy: {reason}")
 
         return response
 

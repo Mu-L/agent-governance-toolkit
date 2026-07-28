@@ -29,6 +29,10 @@ class AdapterResult(Protocol):
         """Return whether the adapter may continue."""
 
     @property
+    def permits_unchanged(self) -> bool:
+        """Return whether the caller may proceed with the value it has."""
+
+    @property
     def verdict(self) -> str:
         """Return the native policy verdict."""
 
@@ -118,6 +122,18 @@ class NativeAdapterResult:
     @property
     def transform(self) -> Any | None:
         return self.evaluation.transform
+
+    @property
+    def permits_unchanged(self) -> bool:
+        """Whether the caller may proceed with the value it already has.
+
+        ``allowed`` is true for ``transform``, but a transform carries a
+        replacement the caller is expected to apply. A site that cannot apply
+        one must gate on this instead, or it runs the original value while the
+        policy believed it had been rewritten, and a redaction policy silently
+        does not redact.
+        """
+        return self.allowed and self.transform is None
 
     @property
     def transformed_value(self) -> Any:

@@ -340,7 +340,9 @@ class GovernedBedrockClient:
                 response["completion"], self._kernel, self._ctx
             )
 
-        self._kernel.post_execute(self._ctx, response)
+        allowed, reason = self._kernel.post_execute(self._ctx, response)
+        if not allowed:
+            raise PolicyViolationError(f"Response blocked by policy: {reason}")
         return response
 
     def get_context(self) -> BedrockContext:

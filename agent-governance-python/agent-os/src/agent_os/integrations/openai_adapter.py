@@ -574,7 +574,11 @@ class GovernedAssistant:
 
             # Handle different statuses
             if run.status == "completed":
-                self._kernel.post_execute(self._ctx, run)
+                allowed, reason = self._kernel.post_execute(self._ctx, run)
+                if not allowed:
+                    raise PolicyViolationError(
+                        f"Response blocked by policy: {reason}"
+                    )
                 return run
 
             elif run.status == "requires_action":

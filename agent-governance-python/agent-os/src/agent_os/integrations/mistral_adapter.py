@@ -318,8 +318,9 @@ class GovernedMistralClient:
                     except Exception:  # noqa: BLE001 — best-effort rewrite
                         pass
 
-        # Post-execute bookkeeping
-        self._kernel.post_execute(self._ctx, response)
+        allowed, reason = self._kernel.post_execute(self._ctx, response)
+        if not allowed:
+            raise PolicyViolationError(f"Response blocked by policy: {reason}")
 
         return response
 
