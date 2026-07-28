@@ -9,7 +9,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import agt.policies as policies
-from agt.policies import PolicyEvaluation
 
 from agent_compliance.policy_test import FixtureResult, ReplayReport, _load_fixtures, replay
 
@@ -18,8 +17,8 @@ class _Runtime:
     def __init__(self, reason_code: str) -> None:
         self.reason_code = reason_code
 
-    def evaluate(self, intervention_point: str, snapshot: dict) -> PolicyEvaluation:
-        return PolicyEvaluation(
+    def evaluate(self, intervention_point: str, snapshot: dict) -> policies.PolicyEvaluation:
+        return policies.PolicyEvaluation(
             verdict="deny",
             reason_code=self.reason_code,
             intervention_point=intervention_point,

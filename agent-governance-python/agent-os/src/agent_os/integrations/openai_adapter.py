@@ -282,12 +282,7 @@ class OpenAIKernel(BaseIntegration):
         """
         uptime = time.monotonic() - self._start_time
         has_clients = bool(self._clients)
-        if self._last_error:
-            status = "degraded"
-        elif not has_clients:
-            status = "healthy"
-        else:
-            status = "healthy"
+        status = "degraded" if self._last_error else "healthy"
         return {
             "status": status,
             "backend": "openai",
@@ -648,18 +643,6 @@ class GovernedAssistant:
             if not bridge_result.allowed:
                 self._kernel.cancel_run(thread_id, run.id, self._client)
                 raise bridge_result.to_policy_violation(PolicyViolationError)
-            if bridge_result.verdict == "escalate":
-                # Escalate with no resolver decision: surface as awaiting
-                # approval to the OpenAI API rather than executing.
-                tool_outputs.append({
-                    "tool_call_id": tool_call.id,
-                    "output": json.dumps({
-                        "status": "requires_approval",
-                        "function": func_name or "unknown",
-                        "message": "Tool execution requires human approval per governance policy",
-                    }),
-                })
-                continue
 
             # Execute via tool registry if available
             output = None

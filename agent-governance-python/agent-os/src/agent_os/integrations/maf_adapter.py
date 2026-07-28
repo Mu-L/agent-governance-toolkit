@@ -42,6 +42,8 @@ from ._native_adapter_runtime import (
     AdapterResult,
     AdapterRuntime,
 )
+# Re-exported so every adapter module resolves the canonical error type;
+# asserted by tests/test_adapter_exception_identity.py.
 from ..exceptions import PolicyViolationError  # noqa: F401
 from .base import BaseIntegration, AdapterExecutionState, get_adapter_runtime
 

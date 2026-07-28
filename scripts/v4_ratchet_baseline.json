@@ -1043,8 +1043,8 @@
       "resolution_root": 2
     },
     "scripts/v4_ratchet_baseline.json": {
-      "GovernancePolicy": 202,
-      "PolicyDocument": 100,
+      "GovernancePolicy": 95,
+      "PolicyDocument": 59,
       "v4_policy_document_file": 1
     }
   },

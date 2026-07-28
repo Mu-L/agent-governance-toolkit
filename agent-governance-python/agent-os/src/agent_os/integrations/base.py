@@ -149,7 +149,8 @@ class TrustedSkillMetadataSource:
 class ToolCallInterceptor(Protocol):
     """Protocol for host-side integrity and trust interceptors."""
 
-    def intercept(self, request: ToolCallRequest) -> ToolCallResult: ...
+    def intercept(self, request: ToolCallRequest) -> ToolCallResult:
+        """Inspect a tool call and return the interception outcome."""
 
 
 class ContentHashInterceptor:

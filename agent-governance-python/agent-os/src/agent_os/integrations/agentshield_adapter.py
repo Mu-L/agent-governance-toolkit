@@ -573,7 +573,6 @@ class AgentShieldKernel:
 
         # ─── AGT input intervention point ──────────────────────────
         ctx = self._get_or_create_context()
-        ctx = self._get_or_create_context()
         bridge_result = self._bridge.evaluate_input(
             ctx, body=text, source="user"
         )
@@ -665,7 +664,6 @@ class AgentShieldKernel:
         self._record(exec_verdict)
 
         # ─── AGT pre_tool_call intervention point ──────────────────
-        ctx = self._get_or_create_context()
         ctx = self._get_or_create_context()
         bridge_result = self._bridge.evaluate_pre_tool_call(
             ctx,
@@ -769,7 +767,6 @@ class AgentShieldKernel:
             )
 
         # ─── AGT output intervention point ─────────────────────────
-        ctx = self._get_or_create_context()
         ctx = self._get_or_create_context()
         bridge_result = self._bridge.evaluate_output(ctx, content=text)
         verdict = self._merge_bridge_verdict(verdict, bridge_result)
