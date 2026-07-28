@@ -150,15 +150,38 @@ project; it resolves to third-party parked addresses. The identifier therefore
 asserted authority over a name belonging to someone else, who could at any point
 publish a conflicting definition at it.
 
-TRACE v0.2 corrects it to `tag:agentrust-io.com,2026:trace-v0.2` and changes
-nothing else about the record format. No field was added, removed, or re-typed, so
-AGT's emitter changes by one constant.
+TRACE v0.2 corrects it to `tag:agentrust-io.com,2026:trace-v0.2`. The *specification*
+change is that one identifier: no field was added, removed, or re-typed.
+
+The *library* jump is a larger cutover, and describing it as one constant undersells
+it. AGT moves from `agentrust-trace` 0.2.0 to 0.5.x, which crosses two releases with
+consequences of their own:
+
+- **0.3.0 changed canonicalization to RFC 8785 (JCS), and it is breaking.** The prior
+  `json.dumps` pre-image was non-conformant. Records AGT signs after this bump are
+  **not cross-verifiable with 0.2.0-era verifiers**, and vice versa, because the
+  signature covers a different byte sequence. Any consumer pinned to 0.2.0 must move
+  with us.
+- **0.3.0 also stopped self-verifying from the embedded `cnf.jwk` by default.**
+  `verify_record` now requires an explicit trusted key unless `allow_embedded_key=True`
+  is passed, and enforces `iat` freshness. Anything that verified AGT records by
+  trusting the key inside them needs updating.
+- 0.4.0 is additive only (the `azure-cvm-sev-snp` platform value and the optional
+  `delegation` block), so it imposes nothing.
+
+None of that is a reason not to move; the 0.2.0 canonicalization was simply wrong.
+It is a reason to say so here rather than let a downstream verifier discover it.
 
 The upstream cutover is deliberate rather than a transition window: a v0.2 verifier
 requires the new URI and rejects the old one, because a verifier accepting both
 would keep the invalid identifier live indefinitely. Records AGT has already
-emitted remain verifiable as v0.1 records against `agentrust-trace-tests` 0.3.x,
-which stays published; they do not become invalid retroactively.
+emitted remain verifiable as v0.1 records, and do not become invalid retroactively.
+Two different packages carry the pre-cutover behaviour, and they are on different
+version lines, which is worth stating precisely: the **library** `agentrust-trace`
+0.4.x still accepts the v0.1 profile, and the **conformance suite**
+`agentrust-trace-tests` 0.3.x still requires it. Both stay published. Note the
+canonicalization caveat above, though: a record signed by AGT under 0.2.0 needs a
+0.2.0-era verifier, not merely a pre-cutover one.
 
 AGT's `agentrust-trace` dependency moves from `>=0.2.0,<0.3.0` to
 `>=0.5.0,<0.6.0`.
