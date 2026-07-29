@@ -294,6 +294,19 @@ class BaseIntegration:
             GovernanceEventType, list[Callable[..., Any]]
         ] = {}
 
+    # The engine reports a point the manifest does not configure as a runtime
+    # error, which is correct for a request that names an unknown point. The
+    # adapter is not answering a request though: it evaluates output after
+    # every call whether or not the host asked for output governance. Reading
+    # that error as a denial would block every response under any manifest
+    # that binds only input or only tool calls, so it is read as "no output
+    # policy configured" instead. Every other reason still denies.
+    _POINT_NOT_CONFIGURED = "runtime_error:intervention_point_unknown"
+
+    @classmethod
+    def _point_not_configured(cls, result: Any) -> bool:
+        return (getattr(result, "reason", None) or "") == cls._POINT_NOT_CONFIGURED
+
     @staticmethod
     def _tuple_for(result: Any) -> tuple[bool, str | None]:
         """Collapse a result to the ``(allowed, reason)`` contract.
@@ -328,6 +341,9 @@ class BaseIntegration:
         """Evaluate host output and update lifecycle counters."""
 
         result = self._adapter_runtime.evaluate_output(state, content=output_data)
+        if self._point_not_configured(result):
+            self.record_host_completion(state, output_data=output_data)
+            return True, None
         if result.allowed:
             self.record_host_completion(state, output_data=output_data)
         return self._tuple_for(result)
