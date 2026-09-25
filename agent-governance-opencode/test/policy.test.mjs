@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { performance } from "node:perf_hooks";
 import test from "node:test";
 
 import { appendAuditEntry, loadAuditEntries, verifyAuditEntries } from "../lib/audit.mjs";
@@ -254,6 +255,187 @@ test("evaluateOpenCodeTool denies dangerous bash bootstrap and enforce-mode revi
   assert.equal(status.auditValid, true);
 
   await rm(root, { recursive: true, force: true });
+});
+
+test("bundled recursive-delete policy denies common flag orderings", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "agt-opencode-recursive-delete-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const state = await loadPolicy({
+    policyPath: null,
+    auditPath: join(root, "audit.json"),
+    homeDirectory: root,
+  });
+  const commands = [
+    "rm -rf /",
+    "rm -fr /",
+    "rm -r -f /",
+    "rm -f -r /",
+    "rm --recursive --force /",
+    "rm --force --recursive /",
+    "rm --recursive -f /",
+    "rm -r --force /",
+    "rm -rfx /",
+    "rm /important-data -rf",
+    "rm --recursiv --forc /",
+    "rm --rec --for /",
+    "rm --r --f /",
+    "rm --re --fo /",
+    "rm --recu --fo /",
+    "rm -r --fo /",
+    "rm \"-rf\" /srv",
+    "rm -r'f' /srv",
+    "rm -rf'' /srv",
+    "rm -r\\f /srv",
+    "rm 'a;b' -rf /srv",
+    "rm a\\;b -rf /srv",
+    "rm 2>&1 -rf /srv",
+    "rm >&2 -rf /srv",
+    "rm>/tmp -rf /srv",
+    "echo ready; rm -rf /srv",
+    "echo \"$(rm -rf /srv)\"",
+    "echo \"`rm -rf /srv`\"",
+    'echo "$(echo "$(echo hi)")"; rm -rf /srv',
+    'echo "`echo "`echo hi`"`"; rm -rf /srv',
+    "x=\"$(rm -rf /srv)\"",
+    "sudo -u root rm -rf /srv",
+    "sudo -Hu root rm -rf /srv",
+    "env AGT_TEST=1 rm -rf /srv",
+    "command rm -rf /srv",
+    "nice rm -rf /srv",
+    "nice -n 10 rm -rf /srv",
+    "time rm -rf /srv",
+    "timeout 5 rm -rf /srv",
+    "timeout -k 1 5 rm -rf /srv",
+    "exec -a NAME rm -rf /srv",
+  ];
+
+  for (const command of commands) {
+    const result = await evaluateOpenCodeTool(state, {
+      tool: "bash",
+      args: { command },
+      cwd: root,
+      sessionId: "recursive-delete-session",
+    });
+    assert.equal(result.effect, "deny", command);
+    assert.match(
+      result.reason,
+      /Recursive delete commands outside common build artifacts/,
+      command,
+    );
+  }
+});
+
+test("bundled recursive-delete policy keeps command boundaries and safe cleanup exceptions", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "agt-opencode-recursive-delete-boundary-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const state = await loadPolicy({
+    policyPath: null,
+    auditPath: join(root, "audit.json"),
+    homeDirectory: root,
+  });
+  const cases = [
+    { command: "rm -- -rf /", matchedRecursiveDelete: false },
+    { command: "rm '--' -rf /srv", matchedRecursiveDelete: false },
+    { command: "rm --no-preserve-root --force /srv", matchedRecursiveDelete: false },
+    { command: "rm --one-file-system --force /srv", matchedRecursiveDelete: false },
+    { command: "rm -rf --interactive=never node_modules", matchedRecursiveDelete: false },
+    { command: "rm -rf node_modules 2>/dev/null", matchedRecursiveDelete: true },
+    { command: "rm -r /tmp && rm -f /tmp", matchedRecursiveDelete: false },
+    { command: "rm -rf node_modules", matchedRecursiveDelete: false },
+    { command: "git rm -rf --cached dir", matchedRecursiveDelete: false },
+    { command: "echo rm -rf /", matchedRecursiveDelete: false },
+    { command: "echo '; rm -rf /'", matchedRecursiveDelete: false },
+    { command: "grep -r 'rm -rf' src", matchedRecursiveDelete: false },
+    { command: "rm -rf node_modules /", matchedRecursiveDelete: true },
+    { command: "rm -rf node_modules ~/*", matchedRecursiveDelete: true },
+  ];
+
+  for (const { command, matchedRecursiveDelete } of cases) {
+    const result = await evaluateOpenCodeTool(state, {
+      tool: "bash",
+      args: { command },
+      cwd: root,
+      sessionId: "recursive-delete-boundary-session",
+    });
+    assert.equal(result.effect, "deny", command);
+    // The enforce-mode review tier from #3676 denies bash regardless of this rule's match.
+    assert.equal(
+      /Recursive delete commands outside common build artifacts/.test(result.reason),
+      matchedRecursiveDelete,
+      command,
+    );
+  }
+});
+
+test("user recursive-delete rules retain their custom command patterns", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "agt-opencode-custom-recursive-delete-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const policyPath = join(root, "policy.json");
+  await writeFile(
+    policyPath,
+    JSON.stringify({
+      schemaVersion: 1,
+      mode: "enforce",
+      toolPolicies: {
+        allowedTools: ["bash"],
+        blockedTools: [],
+        reviewTools: [],
+        defaultEffect: "allow",
+      },
+      blockedToolCalls: [
+        {
+          id: "recursive-delete",
+          tool: "bash",
+          reason: "Custom recursive-delete command is blocked.",
+          effect: "deny",
+          commandPatterns: [
+            { source: "\\bdel\\s+/s\\b", flags: "i" },
+            { source: "\\brimraf\\b", flags: "i" },
+          ],
+        },
+      ],
+    }),
+    "utf8",
+  );
+  const state = await loadPolicy({
+    policyPath,
+    auditPath: join(root, "audit.json"),
+    homeDirectory: root,
+  });
+
+  for (const command of ["del /s /q C:\\data", "npx rimraf dist"]) {
+    const result = await evaluateOpenCodeTool(state, {
+      tool: "bash",
+      args: { command },
+      cwd: root,
+      sessionId: "custom-recursive-delete-session",
+    });
+    assert.equal(result.effect, "deny", command);
+    assert.match(result.reason, /Custom recursive-delete command is blocked/, command);
+  }
+});
+
+test("bundled recursive-delete matcher stays fast on multi-command scripts", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "agt-opencode-recursive-delete-performance-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const state = await loadPolicy({
+    policyPath: null,
+    auditPath: join(root, "audit.json"),
+    homeDirectory: root,
+  });
+  const command = Array.from({ length: 30 }, (_, index) => `echo command-${index}`).join("\n");
+  const start = performance.now();
+  const result = await evaluateOpenCodeTool(state, {
+    tool: "bash",
+    args: { command },
+    cwd: root,
+    sessionId: "recursive-delete-performance-session",
+  });
+  const elapsedMs = performance.now() - start;
+
+  assert.equal(result.effect, "deny");
+  assert.doesNotMatch(result.reason, /Recursive delete commands outside common build artifacts/);
+  assert.ok(elapsedMs < 1_000, `30-command script took ${elapsedMs.toFixed(1)}ms`);
 });
 
 test("evaluateOpenCodeTool denies metadata URL fetches regardless of arg name", async () => {
