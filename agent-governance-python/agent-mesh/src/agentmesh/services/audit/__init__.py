@@ -134,12 +134,11 @@ class AuditService:
 
     def summary(self) -> dict[str, Any]:
         """Get audit service summary statistics."""
-        entries, root = self._log._chain._snapshot()
-        valid, _error = self._log._chain._verify_entries(entries)
+        snapshot = self._log.verify_snapshot()
         return {
-            "total_entries": len(entries),
-            "chain_valid": valid,
-            "root_hash": root,
+            "total_entries": len(snapshot.entries),
+            "chain_valid": snapshot.valid,
+            "root_hash": snapshot.root_hash,
         }
 
 
